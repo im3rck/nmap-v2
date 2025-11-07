@@ -57,9 +57,10 @@ impl PythonExecutor {
     }
 
     /// Convert ScriptContext to Python dictionary
-    fn context_to_pydict(py: Python, context: &ScriptContext) -> Result<&PyDict> {
+    fn context_to_pydict<'a>(py: Python<'a>, context: &ScriptContext) -> Result<&'a PyDict> {
         let dict = PyDict::new(py);
 
+        // Map struct field names to what Python scripts expect
         dict.set_item("target", &context.target_ip)
             .map_err(|e| Error::Script(format!("Failed to set context: {}", e)))?;
 
@@ -101,21 +102,24 @@ impl PythonExecutor {
         if let Ok(dict) = result.downcast::<PyDict>() {
             let output = dict
                 .get_item("output")
-                .and_then(|o| o.extract::<String>().ok())
+                .map_err(|_| Error::Script("Failed to get output".to_string()))?
+                .map(|o| o.extract::<String>().unwrap_or_default())
                 .unwrap_or_default();
 
             let success = dict
                 .get_item("success")
-                .and_then(|s| s.extract::<bool>().ok())
+                .map_err(|_| Error::Script("Failed to get success".to_string()))?
+                .map(|s| s.extract::<bool>().unwrap_or(true))
                 .unwrap_or(true);
 
             let error = dict
                 .get_item("error")
+                .map_err(|_| Error::Script("Failed to get error".to_string()))?
                 .and_then(|e| e.extract::<String>().ok());
 
             // Extract data dictionary
             let mut data = HashMap::new();
-            if let Some(data_dict) = dict.get_item("data") {
+            if let Ok(Some(data_dict)) = dict.get_item("data") {
                 if let Ok(d) = data_dict.downcast::<PyDict>() {
                     for (key, value) in d.iter() {
                         if let (Ok(k), Ok(v)) = (key.extract::<String>(), value.extract::<String>()) {

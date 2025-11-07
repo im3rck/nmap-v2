@@ -5,7 +5,7 @@ use crate::TimingConfig;
 use std::time::{Duration, Instant};
 
 /// Timing profile for a single target
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TimingProfile {
     /// RTT tracker
     rtt: RttTracker,

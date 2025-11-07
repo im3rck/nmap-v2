@@ -32,6 +32,7 @@ impl OptimizedTimingEngine {
                 debug!("Created new timing profile for {}", target);
                 TimingProfile::new(self.config.clone())
             })
+            .value()
             .clone()
     }
 

@@ -14,6 +14,14 @@ pub use types::*;
 
 use apexscan_core::{Error, Result};
 
+/// Protocol constants for raw sockets
+pub mod protocols {
+    pub const TCP: i32 = libc::IPPROTO_TCP;
+    pub const UDP: i32 = libc::IPPROTO_UDP;
+    pub const ICMP: i32 = libc::IPPROTO_ICMP;
+    pub const ICMPV6: i32 = libc::IPPROTO_ICMPV6;
+}
+
 /// Trait for packet building
 pub trait PacketBuilder {
     /// Build the packet into bytes

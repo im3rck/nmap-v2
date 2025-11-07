@@ -553,11 +553,11 @@ impl Pipeline {
                     let script_path = format!("scripts/{}.py", script_name);
 
                     let context = ScriptContext {
-                        target: ip.to_string(),
-                        port: Some(port_result.port),
-                        service: port_result.service.clone(),
-                        version: port_result.version.clone(),
-                        os_info: None,
+                        target_ip: ip.to_string(),
+                        target_port: Some(port_result.port),
+                        service_name: port_result.service.clone(),
+                        service_version: port_result.version.clone(),
+                        os_name: None,
                         banner: port_result.extra_info.clone(),
                     };
 
