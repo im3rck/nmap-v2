@@ -1,11 +1,13 @@
 //! ApexScan Fingerprinting Module
 //!
-//! Service version detection and OS fingerprinting
+//! Service version detection, OS fingerprinting, and asset profiling
 
 pub mod service;
 pub mod os;
 pub mod banner;
 pub mod signatures;
+pub mod cap; // Contextual Asset Profiling
+pub mod avm; // Automated Vulnerability Mapping
 
 use apexscan_core::Result;
 use std::net::IpAddr;
@@ -19,6 +21,7 @@ pub struct ServiceInfo {
     pub version: Option<String>,
     pub product: Option<String>,
     pub extra_info: Option<String>,
+    pub banner: String,  // Raw banner for CAP analysis
     pub confidence: f32,
 }
 

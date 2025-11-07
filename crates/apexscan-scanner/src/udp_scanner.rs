@@ -9,12 +9,12 @@ use apexscan_core::{
 use apexscan_packet::{
     builders::{Ipv4PacketBuilder, UdpPacketBuilder},
     parsers::{parse_icmp, parse_ipv4},
+    protocols,
     raw::RawSocket,
     types::IcmpType,
     PacketBuilder,
 };
 use async_trait::async_trait;
-use socket2::Protocol as SocketProtocol;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::time::{Duration, Instant};
 use tokio::net::UdpSocket;
@@ -45,7 +45,7 @@ impl UdpScanner {
             .map_err(|e| Error::Network(format!("Failed to bind UDP socket: {}", e)))?;
 
         // Create ICMP socket for receiving unreachable messages
-        let icmp_socket = RawSocket::new_ipv4(SocketProtocol::ICMPV4)?;
+        let icmp_socket = RawSocket::new_ipv4(protocols::ICMP)?;
         icmp_socket.set_timeout(self.config.timeout)?;
 
         let start = Instant::now();

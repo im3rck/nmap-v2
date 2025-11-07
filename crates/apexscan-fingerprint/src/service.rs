@@ -27,11 +27,12 @@ impl ServiceDetector {
         // Try to grab banner
         let banner_result = self.banner_grabber.grab_banner(addr).await;
 
-        let (service_name, version, product, extra_info) = if let Ok(banner) = banner_result {
-            self.analyze_banner(&banner, port)
+        let (banner_str, service_name, version, product, extra_info) = if let Ok(banner) = banner_result {
+            let (svc, ver, prod, extra) = self.analyze_banner(&banner, port);
+            (banner, svc, ver, prod, extra)
         } else {
             // Fallback to port-based guess
-            (self.guess_service_by_port(port), None, None, None)
+            (String::new(), self.guess_service_by_port(port), None, None, None)
         };
 
         let confidence = if version.is_some() {
@@ -49,6 +50,7 @@ impl ServiceDetector {
             version,
             product,
             extra_info,
+            banner: banner_str,
             confidence,
         })
     }

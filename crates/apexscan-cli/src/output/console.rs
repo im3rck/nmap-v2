@@ -93,15 +93,15 @@ fn format_host_result_string(host: &HostResult) -> String {
                     PortState::OpenFiltered => "open|filtered".yellow(),
                     _ => continue,
                 };
-                
+
                 let service = port.service.as_ref()
                     .unwrap_or(&"unknown".to_string())
                     .bright_white();
-                
+
                 let version = port.version.as_ref()
                     .map(|v| format!(" ({})", v).bright_black().to_string())
                     .unwrap_or_default();
-                
+
                 output.push_str(&format!("    {} {} {} {}{}\n",
                     "▸".bright_cyan(),
                     port_str.bright_yellow(),
@@ -109,6 +109,62 @@ fn format_host_result_string(host: &HostResult) -> String {
                     service,
                     version
                 ));
+
+                // CAP: Display patch level and security posture for HTTP/HTTPS
+                if let Some(ref patch) = port.patch_level {
+                    output.push_str(&format!("      {} {}\n",
+                        "Patch Level:".bright_black(),
+                        patch.bright_white()
+                    ));
+                }
+                if let Some(ref posture) = port.security_posture {
+                    let posture_colored = match posture.as_str() {
+                        "Strong" => posture.bright_green(),
+                        "Moderate" => posture.bright_cyan(),
+                        "Weak" => posture.yellow(),
+                        "Poor" => posture.bright_red(),
+                        _ => posture.white(),
+                    };
+                    output.push_str(&format!("      {} {}\n",
+                        "Security:".bright_black(),
+                        posture_colored
+                    ));
+                }
+
+                // AVM: Display vulnerability impact scores with color coding
+                if let Some(impact) = port.impact_score {
+                    let (severity, color_fn): (&str, fn(&str) -> ColoredString) = if impact >= 9.0 {
+                        ("CRITICAL", |s: &str| s.bright_red().bold())
+                    } else if impact >= 7.0 {
+                        ("HIGH", |s: &str| s.yellow().bold())
+                    } else if impact >= 4.0 {
+                        ("MEDIUM", |s: &str| s.bright_cyan())
+                    } else {
+                        ("LOW", |s: &str| s.white())
+                    };
+
+                    output.push_str(&format!("      {} {} [{}]\n",
+                        "Impact:".bright_black(),
+                        color_fn(&format!("{:.1}", impact)),
+                        color_fn(severity)
+                    ));
+
+                    // Display CVE IDs
+                    if let Some(ref cves) = port.cve_ids {
+                        if !cves.is_empty() {
+                            let cve_list = if cves.len() <= 3 {
+                                cves.join(", ")
+                            } else {
+                                format!("{}, {} (and {} more)",
+                                    cves[0], cves[1], cves.len() - 2)
+                            };
+                            output.push_str(&format!("      {} {}\n",
+                                "CVEs:".bright_black(),
+                                cve_list.bright_red()
+                            ));
+                        }
+                    }
+                }
             }
         }
     }

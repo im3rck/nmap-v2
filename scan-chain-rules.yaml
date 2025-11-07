@@ -1,0 +1,187 @@
+# ApexScan Smart Scan Chaining Rules
+#
+# Defines conditional logic for automated follow-up scans based on detection results
+
+version: 1.0
+
+rules:
+  # SMB/Windows File Sharing
+  - name: "SMB Enumeration"
+    description: "Enumerate SMB shares when SMB service detected"
+    conditions:
+      - field: "service"
+        operator: "equals"
+        value: "microsoft-ds"
+      - field: "port"
+        operator: "in"
+        values: [445, 139]
+      - field: "state"
+        operator: "equals"
+        value: "open"
+    actions:
+      - type: "run_script"
+        script: "smb-enum-shares"
+      - type: "run_script"
+        script: "smb-security-mode"
+
+  # FTP Anonymous Login
+  - name: "FTP Security Check"
+    description: "Check for anonymous FTP and brute-force vectors"
+    conditions:
+      - field: "service"
+        operator: "contains"
+        value: "ftp"
+      - field: "state"
+        operator: "equals"
+        value: "open"
+    actions:
+      - type: "run_script"
+        script: "ftp-anon"
+      - type: "run_script"
+        script: "ftp-bounce"
+
+  # SSH Weak Configuration
+  - name: "SSH Security Assessment"
+    description: "Assess SSH configuration and auth methods"
+    conditions:
+      - field: "service"
+        operator: "contains"
+        value: "ssh"
+      - field: "state"
+        operator: "equals"
+        value: "open"
+    actions:
+      - type: "run_script"
+        script: "ssh-auth-methods"
+      - type: "run_script"
+        script: "ssh-hostkey"
+
+  # HTTP/HTTPS Web Services
+  - name: "Web Application Discovery"
+    description: "Enumerate web applications and common vulnerabilities"
+    conditions:
+      - field: "service"
+        operator: "contains"
+        value: "http"
+      - field: "state"
+        operator: "equals"
+        value: "open"
+    actions:
+      - type: "run_script"
+        script: "http-title"
+      - type: "run_script"
+        script: "http-methods"
+      - type: "run_script"
+        script: "http-headers"
+
+  # MySQL/MariaDB
+  - name: "Database Security Check"
+    description: "Check database configuration and access control"
+    conditions:
+      - field: "service"
+        operator: "in"
+        values: ["mysql", "mariadb"]
+      - field: "state"
+        operator: "equals"
+        value: "open"
+    actions:
+      - type: "run_script"
+        script: "mysql-info"
+      - type: "run_script"
+        script: "mysql-empty-password"
+
+  # Windows RDP
+  - name: "RDP Security Assessment"
+    description: "Check RDP configuration and encryption"
+    conditions:
+      - field: "port"
+        operator: "equals"
+        value: 3389
+      - field: "state"
+        operator: "equals"
+        value: "open"
+    actions:
+      - type: "run_script"
+        script: "rdp-enum-encryption"
+      - type: "run_script"
+        script: "rdp-ntlm-info"
+
+  # DNS Server
+  - name: "DNS Reconnaissance"
+    description: "Enumerate DNS server information and zone transfers"
+    conditions:
+      - field: "service"
+        operator: "contains"
+        value: "domain"
+      - field: "port"
+        operator: "equals"
+        value: 53
+    actions:
+      - type: "run_script"
+        script: "dns-nsid"
+      - type: "run_script"
+        script: "dns-zone-transfer"
+
+  # SMTP Mail Server
+  - name: "SMTP Enumeration"
+    description: "Enumerate SMTP commands and relay testing"
+    conditions:
+      - field: "service"
+        operator: "contains"
+        value: "smtp"
+      - field: "state"
+        operator: "equals"
+        value: "open"
+    actions:
+      - type: "run_script"
+        script: "smtp-commands"
+      - type: "run_script"
+        script: "smtp-open-relay"
+
+  # High-Risk CVE Detection
+  - name: "Critical Vulnerability Follow-up"
+    description: "Perform in-depth checks on critical vulnerabilities"
+    conditions:
+      - field: "impact_score"
+        operator: "gte"
+        value: 9.0
+      - field: "exploit_available"
+        operator: "equals"
+        value: true
+    actions:
+      - type: "increase_verbosity"
+      - type: "run_script"
+        script: "vuln-check"
+
+  # Filtered Port Investigation
+  - name: "Firewall Evasion"
+    description: "Use alternative scan techniques for filtered ports"
+    conditions:
+      - field: "state"
+        operator: "equals"
+        value: "filtered"
+      - field: "port"
+        operator: "in"
+        values: [22, 80, 443, 3389]
+    actions:
+      - type: "rescan"
+        scan_type: "ack"
+      - type: "rescan"
+        scan_type: "window"
+
+# Configuration
+config:
+  # Enable Smart Scan Chaining globally
+  enabled: true
+
+  # Maximum chaining depth (prevent infinite loops)
+  max_depth: 3
+
+  # Timeout for chained scans (seconds)
+  timeout: 300
+
+  # Parallel execution of chained actions
+  parallel: true
+
+  # Log all chaining decisions
+  verbose_logging: true

@@ -115,6 +115,22 @@ pub struct PortResult {
 
     /// Confidence score (0.0-1.0)
     pub confidence: f32,
+
+    /// CAP: Inferred patch level
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub patch_level: Option<String>,
+
+    /// CAP: Security posture assessment
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub security_posture: Option<String>,
+
+    /// AVM: Impact score (0.0-10.0 CVSS scale)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub impact_score: Option<f64>,
+
+    /// AVM: Matched CVE IDs
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cve_ids: Option<Vec<String>>,
 }
 
 /// OS detection result

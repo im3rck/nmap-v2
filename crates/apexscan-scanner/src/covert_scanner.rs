@@ -12,12 +12,12 @@ use apexscan_core::{
 use apexscan_packet::{
     builders::{Ipv4PacketBuilder, TcpPacketBuilder},
     parsers::{parse_ipv4, parse_tcp},
+    protocols,
     raw::RawSocket,
     types::TcpFlags,
     PacketBuilder,
 };
 use async_trait::async_trait;
-use socket2::Protocol as SocketProtocol;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;
@@ -37,7 +37,7 @@ pub struct TcpNullScanner {
 
 impl TcpNullScanner {
     pub fn new(config: ScannerConfig) -> Result<Self> {
-        let socket = RawSocket::new_ipv4(SocketProtocol::TCP)?;
+        let socket = RawSocket::new_ipv4(protocols::TCP)?;
         socket.set_timeout(config.timeout)?;
 
         Ok(Self {
@@ -84,7 +84,7 @@ impl TcpNullScanner {
                                     // RST received -> port is CLOSED
                                     let rtt = start.elapsed();
                                     trace!("Received RST (NULL scan), port CLOSED");
-                                    return Ok((PortState::Closed, rtt));
+                                    return (PortState::Closed, rtt);
                                 }
                             }
                         }
@@ -96,7 +96,7 @@ impl TcpNullScanner {
         .await;
 
         match recv_result {
-            Ok(state_rtt) => state_rtt,
+            Ok(state_rtt) => Ok(state_rtt),
             Err(_) => {
                 // No response -> Open|Filtered
                 Ok((PortState::OpenFiltered, Duration::from_secs(0)))
@@ -160,7 +160,7 @@ pub struct TcpFinScanner {
 
 impl TcpFinScanner {
     pub fn new(config: ScannerConfig) -> Result<Self> {
-        let socket = RawSocket::new_ipv4(SocketProtocol::TCP)?;
+        let socket = RawSocket::new_ipv4(protocols::TCP)?;
         socket.set_timeout(config.timeout)?;
 
         Ok(Self {
@@ -219,7 +219,7 @@ impl PortScanner for TcpFinScanner {
                             if let Ok(tcp) = parse_tcp(&ipv4.payload) {
                                 if tcp.flags.rst {
                                     let rtt = start.elapsed();
-                                    return Ok((PortState::Closed, rtt));
+                                    return (PortState::Closed, rtt);
                                 }
                             }
                         }
@@ -269,7 +269,7 @@ pub struct TcpXmasScanner {
 
 impl TcpXmasScanner {
     pub fn new(config: ScannerConfig) -> Result<Self> {
-        let socket = RawSocket::new_ipv4(SocketProtocol::TCP)?;
+        let socket = RawSocket::new_ipv4(protocols::TCP)?;
         socket.set_timeout(config.timeout)?;
 
         Ok(Self {
@@ -327,7 +327,7 @@ impl PortScanner for TcpXmasScanner {
                             if let Ok(tcp) = parse_tcp(&ipv4.payload) {
                                 if tcp.flags.rst {
                                     let rtt = start.elapsed();
-                                    return Ok((PortState::Closed, rtt));
+                                    return (PortState::Closed, rtt);
                                 }
                             }
                         }

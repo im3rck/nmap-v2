@@ -7,12 +7,12 @@ use apexscan_core::{types::Target, Error, Result};
 use apexscan_packet::{
     builders::{IcmpPacketBuilder, Ipv4PacketBuilder},
     parsers::parse_icmp,
+    protocols,
     raw::RawSocket,
     types::IcmpType,
     PacketBuilder,
 };
 use async_trait::async_trait;
-use socket2::Protocol;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::sync::atomic::{AtomicU16, Ordering};
 use std::sync::Arc;
@@ -29,7 +29,7 @@ pub struct IcmpEchoDiscovery {
 
 impl IcmpEchoDiscovery {
     pub fn new(timeout_duration: Duration) -> Result<Self> {
-        let socket = RawSocket::new_ipv4(Protocol::ICMPV4)?;
+        let socket = RawSocket::new_ipv4(protocols::ICMP)?;
         socket.set_timeout(timeout_duration)?;
 
         Ok(Self {
@@ -176,7 +176,7 @@ pub struct IcmpTimestampDiscovery {
 
 impl IcmpTimestampDiscovery {
     pub fn new(timeout_duration: Duration) -> Result<Self> {
-        let socket = RawSocket::new_ipv4(Protocol::ICMPV4)?;
+        let socket = RawSocket::new_ipv4(protocols::ICMP)?;
         socket.set_timeout(timeout_duration)?;
 
         Ok(Self {
@@ -248,7 +248,7 @@ impl HostDiscovery for IcmpTimestampDiscovery {
                         match parse_icmp(icmp_data) {
                             Ok(icmp) => {
                                 if icmp.icmp_type == IcmpType::TimestampReply {
-                                    return Ok(start.elapsed());
+                                    return start.elapsed();
                                 }
                             }
                             Err(_) => continue,

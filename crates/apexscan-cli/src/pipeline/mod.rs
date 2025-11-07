@@ -227,6 +227,10 @@ impl Pipeline {
                             version: None,
                             extra_info: None,
                             confidence: 0.0,
+                            patch_level: None,
+                            security_posture: None,
+                            impact_score: None,
+                            cve_ids: None,
                         });
                     }
                     Err(e) => {
@@ -258,6 +262,10 @@ impl Pipeline {
                             version: None,
                             extra_info: None,
                             confidence: 0.0,
+                            patch_level: None,
+                            security_posture: None,
+                            impact_score: None,
+                            cve_ids: None,
                         });
                     }
                     Err(e) => {
@@ -289,6 +297,10 @@ impl Pipeline {
                             version: None,
                             extra_info: None,
                             confidence: 0.0,
+                            patch_level: None,
+                            security_posture: None,
+                            impact_score: None,
+                            cve_ids: None,
                         });
                     }
                     Err(e) => {
@@ -320,6 +332,10 @@ impl Pipeline {
                             version: None,
                             extra_info: None,
                             confidence: 0.0,
+                            patch_level: None,
+                            security_posture: None,
+                            impact_score: None,
+                            cve_ids: None,
                         });
                     }
                     Err(e) => {
@@ -351,6 +367,10 @@ impl Pipeline {
                             version: None,
                             extra_info: None,
                             confidence: 0.0,
+                            patch_level: None,
+                            security_posture: None,
+                            impact_score: None,
+                            cve_ids: None,
                         });
                     }
                     Err(e) => {
@@ -382,6 +402,10 @@ impl Pipeline {
                             version: None,
                             extra_info: None,
                             confidence: 0.0,
+                            patch_level: None,
+                            security_posture: None,
+                            impact_score: None,
+                            cve_ids: None,
                         });
                     }
                     Err(e) => {
@@ -413,6 +437,10 @@ impl Pipeline {
                             version: None,
                             extra_info: None,
                             confidence: 0.0,
+                            patch_level: None,
+                            security_posture: None,
+                            impact_score: None,
+                            cve_ids: None,
                         });
                     }
                     Err(e) => {
@@ -444,6 +472,10 @@ impl Pipeline {
                             version: None,
                             extra_info: None,
                             confidence: 0.0,
+                            patch_level: None,
+                            security_posture: None,
+                            impact_score: None,
+                            cve_ids: None,
                         });
                     }
                     Err(e) => {
@@ -475,6 +507,10 @@ impl Pipeline {
                             version: None,
                             extra_info: None,
                             confidence: 0.0,
+                            patch_level: None,
+                            security_posture: None,
+                            impact_score: None,
+                            cve_ids: None,
                         });
                     }
                     Err(e) => {
@@ -489,12 +525,20 @@ impl Pipeline {
         }
     }
 
-    /// Service/version detection
+    /// Service/version detection with CAP and AVM integration
     async fn detect_services(&self, ip: IpAddr, ports: Vec<apexscan_core::scan::PortResult>) -> Result<Vec<apexscan_core::scan::PortResult>> {
-        use apexscan_fingerprint::{banner::BannerGrabber, service::ServiceDetector};
+        use apexscan_fingerprint::{
+            banner::BannerGrabber,
+            service::ServiceDetector,
+            cap::HttpProfile,
+            avm::CveDatabase,
+        };
 
         let banner_grabber = BannerGrabber::new(Duration::from_secs(3));
         let detector = ServiceDetector::new(banner_grabber);
+
+        // Load CVE database for AVM
+        let cve_db = CveDatabase::load_mock();
 
         let mut enhanced_ports = Vec::new();
 
@@ -505,10 +549,57 @@ impl Pipeline {
 
                 match detector.detect_service(ip, port_result.port).await {
                     Ok(service_info) => {
-                        port_result.service = Some(service_info.service_name);
-                        port_result.version = service_info.version;
-                        port_result.extra_info = Some(service_info.banner);
+                        port_result.service = Some(service_info.service_name.clone());
+                        port_result.version = service_info.version.clone();
+                        port_result.extra_info = Some(service_info.banner.clone());
                         port_result.confidence = service_info.confidence;
+
+                        // CAP: Contextual Asset Profiling for HTTP/HTTPS services
+                        if let Some(ref svc) = service_info.service_name {
+                            if svc == "http" || svc == "https" {
+                                // Analyze HTTP headers for patch level inference
+                                let http_profile = HttpProfile::from_headers(&service_info.banner);
+                                port_result.patch_level = Some(http_profile.infer_patch_level());
+
+                                // Determine security posture
+                                let posture = if http_profile.patch_level_confidence > 0.8 {
+                                    "Strong"
+                                } else if http_profile.patch_level_confidence > 0.6 {
+                                    "Moderate"
+                                } else if http_profile.patch_level_confidence > 0.4 {
+                                    "Weak"
+                                } else {
+                                    "Poor"
+                                };
+                                port_result.security_posture = Some(posture.to_string());
+
+                                debug!("CAP analysis for {}:{} - Patch: {}, Posture: {}",
+                                    ip, port_result.port,
+                                    http_profile.infer_patch_level(),
+                                    posture
+                                );
+                            }
+                        }
+
+                        // AVM: Automated Vulnerability Mapping
+                        if let Some(ref svc) = service_info.service_name {
+                            let impact = cve_db.query(svc, service_info.version.as_deref());
+
+                            if !impact.cves.is_empty() {
+                                port_result.impact_score = Some(impact.score);
+                                port_result.cve_ids = Some(
+                                    impact.cves.iter()
+                                        .map(|cve| cve.cve_id.clone())
+                                        .collect()
+                                );
+
+                                debug!("AVM analysis for {}:{} - Impact: {:.1}, CVEs: {}",
+                                    ip, port_result.port,
+                                    impact.score,
+                                    impact.cves.len()
+                                );
+                            }
+                        }
                     }
                     Err(e) => {
                         debug!("Service detection failed for {}:{} - {}", ip, port_result.port, e);
