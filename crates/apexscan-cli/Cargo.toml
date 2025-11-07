@@ -13,6 +13,11 @@ path = "src/main.rs"
 [dependencies]
 apexscan-core = { path = "../apexscan-core" }
 apexscan-packet = { path = "../apexscan-packet" }
+apexscan-scanner = { path = "../apexscan-scanner" }
+apexscan-discovery = { path = "../apexscan-discovery" }
+apexscan-fingerprint = { path = "../apexscan-fingerprint" }
+apexscan-scripting = { path = "../apexscan-scripting" }
+apexscan-timing = { path = "../apexscan-timing" }
 
 tokio = { workspace = true }
 clap = { workspace = true }
@@ -22,3 +27,4 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+chrono = { workspace = true }

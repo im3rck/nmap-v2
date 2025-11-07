@@ -213,7 +213,7 @@ async fn main() {
                 eprintln!("Try 'apexscan --help' for more information");
                 process::exit(1);
             }
-
+            
             run_scan(cli, cli.targets.clone()).await;
         }
     }
@@ -275,15 +275,15 @@ async fn run_scan(cli: Cli, targets: Vec<String>) {
 
     // Execute scan
     println!("{} Initializing scan...", "→".bright_cyan());
-
+    
     match pipeline.execute(targets).await {
         Ok(results) => {
             // Output results
             let format = OutputFormat::from_str(&cli.output_format)
                 .unwrap_or(OutputFormat::Console);
-
+            
             let output_manager = OutputManager::new(format, cli.output_file);
-
+            
             if let Err(e) = output_manager.write_results(&results) {
                 eprintln!("{} Failed to write output: {}", "Error:".bright_red(), e);
                 process::exit(1);
@@ -311,7 +311,7 @@ fn parse_ports(port_spec: &str) -> Result<Vec<apexscan_core::types::Port>, Strin
 
 fn check_system_requirements() {
     println!("  {} Checking raw socket permissions...", "→".bright_cyan());
-
+    
     #[cfg(target_os = "linux")]
     {
         match apexscan_packet::raw::check_raw_socket_permission() {
@@ -322,12 +322,12 @@ fn check_system_requirements() {
             }
         }
     }
-
+    
     println!("\n  {} Runtime environment:", "→".bright_cyan());
     println!("    Rust version: {}", env!("CARGO_PKG_RUST_VERSION", "unknown"));
     println!("    Tokio async runtime: enabled");
     println!("    Python support (PyO3): enabled");
-
+    
     println!("\n  {} Scan capabilities:", "→".bright_cyan());
     println!("    ✓ TCP SYN scan");
     println!("    ✓ TCP Connect scan");
@@ -345,27 +345,27 @@ fn list_scripts(category: Option<String>) {
     let scripts_dir = std::env::current_dir()
         .unwrap_or_default()
         .join("scripts");
-
+    
     println!("\n  {} Script directory: {}", "→".bright_cyan(), scripts_dir.display());
     println!("\n  {} Available scripts:", "→".bright_cyan());
-
+    
     let scripts = vec![
         ("http-title", "discovery, safe", "Grabs HTML title from web servers"),
         ("ssh-auth-methods", "discovery, safe", "Lists SSH authentication methods"),
         ("ftp-anon", "auth, vuln", "Checks for anonymous FTP login"),
     ];
-
+    
     for (name, cats, desc) in scripts {
         if let Some(ref filter) = category {
             if !cats.contains(filter.as_str()) {
                 continue;
             }
         }
-
+        
         println!("\n    {} {}", "▸".bright_yellow(), name.bright_white().bold());
         println!("      Categories: {}", cats.bright_black());
         println!("      {}", desc);
     }
-
+    
     println!("\n  {} Usage: apexscan <target> -C --scripts=<script-name>", "→".bright_cyan());
 }
