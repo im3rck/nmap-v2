@@ -4,6 +4,9 @@
 
 pub mod syn_scanner;
 pub mod connect_scanner;
+pub mod covert_scanner;
+pub mod udp_scanner;
+pub mod specialized_scanner;
 pub mod state;
 pub mod coordinator;
 

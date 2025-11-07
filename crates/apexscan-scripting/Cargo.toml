@@ -8,5 +8,12 @@ license.workspace = true
 
 [dependencies]
 apexscan-core = { path = "../apexscan-core" }
+
 tokio = { workspace = true }
 tracing = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+pyo3 = { workspace = true, features = ["auto-initialize"] }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util"] }

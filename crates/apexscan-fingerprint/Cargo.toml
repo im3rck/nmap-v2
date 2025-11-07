@@ -8,5 +8,14 @@ license.workspace = true
 
 [dependencies]
 apexscan-core = { path = "../apexscan-core" }
+apexscan-packet = { path = "../apexscan-packet" }
+
 tokio = { workspace = true }
+async-trait = { workspace = true }
 tracing = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+regex = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util"] }
