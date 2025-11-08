@@ -7,14 +7,14 @@ use apexscan_core::{
     Result,
 };
 use apexscan_scanner::{
-    connect::TcpConnectScanner,
-    covert::{TcpFinScanner, TcpNullScanner, TcpXmasScanner},
-    specialized::{TcpAckScanner, TcpMaimonScanner, TcpWindowScanner},
+    connect_scanner::TcpConnectScanner,
+    covert_scanner::{TcpFinScanner, TcpNullScanner, TcpXmasScanner},
+    specialized_scanner::{TcpAckScanner, TcpMaimonScanner, TcpWindowScanner},
     syn_scanner::TcpSynScanner,
     udp_scanner::UdpScanner,
+    PortScanner,
     ScannerConfig,
 };
-use apexscan_timing::{profile::TimingProfile, Optimizer};
 use colored::*;
 use std::net::{IpAddr, Ipv4Addr};
 use std::sync::Arc;
@@ -148,7 +148,7 @@ impl Pipeline {
         let scanner_config = ScannerConfig {
             timeout: Duration::from_secs(2),
             max_retries: 2,
-            max_parallel: 100,
+            max_concurrent: 100,
         };
 
         // Scan ports based on scan type
@@ -194,7 +194,9 @@ impl Pipeline {
 
         // Step 5: OS Detection
         if self.config.os_detection {
-            result.os_info = self.detect_os(ip).await.ok();
+            if let Ok(os_result) = self.detect_os(ip).await {
+                result.os = vec![os_result];
+            }
         }
 
         // Step 6: Script Scanning (ASE)
@@ -212,122 +214,109 @@ impl Pipeline {
 
     /// TCP SYN scan implementation
     async fn scan_tcp_syn(&self, ip: IpAddr, config: &ScannerConfig) -> Result<Vec<apexscan_core::scan::PortResult>> {
-        if let IpAddr::V4(ipv4) = ip {
-            let scanner = TcpSynScanner::new(config.clone())?;
-            let mut results = Vec::new();
+        let scanner = TcpSynScanner::new(config.clone())?;
+        let mut results = Vec::new();
 
-            for &port in &self.config.ports {
-                match scanner.scan_port(ipv4, port).await {
-                    Ok((state, rtt)) => {
-                        results.push(apexscan_core::scan::PortResult {
-                            port,
-                            protocol: Protocol::Tcp,
-                            state,
-                            service: None,
-                            version: None,
-                            extra_info: None,
-                            confidence: 0.0,
-                            patch_level: None,
-                            security_posture: None,
-                            impact_score: None,
-                            cve_ids: None,
-                        });
-                    }
-                    Err(e) => {
-                        warn!("SYN scan failed for {}:{} - {}", ip, port, e);
-                    }
+        for &port in &self.config.ports {
+            match scanner.scan_port(ip, port).await {
+                Ok(scan_result) => {
+                    results.push(apexscan_core::scan::PortResult {
+                        port,
+                        protocol: Protocol::Tcp,
+                        state: scan_result.state,
+                        service: None,
+                        version: None,
+                        extra_info: None,
+                        confidence: 0.0,
+                        patch_level: None,
+                        security_posture: None,
+                        impact_score: None,
+                        cve_ids: None,
+                    });
+                }
+                Err(e) => {
+                    warn!("SYN scan failed for {}:{} - {}", ip, port, e);
                 }
             }
-
-            Ok(results)
-        } else {
-            Err(apexscan_core::Error::InvalidInput("IPv6 not yet supported for SYN scan".to_string()))
         }
+
+        Ok(results)
     }
 
     /// TCP Connect scan implementation
     async fn scan_tcp_connect(&self, ip: IpAddr, config: &ScannerConfig) -> Result<Vec<apexscan_core::scan::PortResult>> {
-        if let IpAddr::V4(ipv4) = ip {
-            let scanner = TcpConnectScanner::new(config.clone());
-            let mut results = Vec::new();
+        let scanner = TcpConnectScanner::new(config.clone());
+        let mut results = Vec::new();
 
-            for &port in &self.config.ports {
-                match scanner.scan_port(ipv4, port).await {
-                    Ok((state, rtt)) => {
-                        results.push(apexscan_core::scan::PortResult {
-                            port,
-                            protocol: Protocol::Tcp,
-                            state,
-                            service: None,
-                            version: None,
-                            extra_info: None,
-                            confidence: 0.0,
-                            patch_level: None,
-                            security_posture: None,
-                            impact_score: None,
-                            cve_ids: None,
-                        });
-                    }
-                    Err(e) => {
-                        warn!("Connect scan failed for {}:{} - {}", ip, port, e);
-                    }
+        for &port in &self.config.ports {
+            match scanner.scan_port(ip, port).await {
+                Ok(scan_result) => {
+                    results.push(apexscan_core::scan::PortResult {
+                        port,
+                        protocol: Protocol::Tcp,
+                        state: scan_result.state,
+                        service: None,
+                        version: None,
+                        extra_info: None,
+                        confidence: 0.0,
+                        patch_level: None,
+                        security_posture: None,
+                        impact_score: None,
+                        cve_ids: None,
+                    });
+                }
+                Err(e) => {
+                    warn!("Connect scan failed for {}:{} - {}", ip, port, e);
                 }
             }
-
-            Ok(results)
-        } else {
-            Err(apexscan_core::Error::InvalidInput("IPv6 not yet supported for Connect scan".to_string()))
         }
+
+        Ok(results)
     }
 
     /// UDP scan implementation
     async fn scan_udp(&self, ip: IpAddr, config: &ScannerConfig) -> Result<Vec<apexscan_core::scan::PortResult>> {
-        if let IpAddr::V4(ipv4) = ip {
-            let scanner = UdpScanner::new(config.clone())?;
-            let mut results = Vec::new();
+        let scanner = UdpScanner::new(config.clone());
+        let mut results = Vec::new();
 
-            for &port in &self.config.ports {
-                match scanner.scan_port(ipv4, port).await {
-                    Ok((state, rtt)) => {
-                        results.push(apexscan_core::scan::PortResult {
-                            port,
-                            protocol: Protocol::Udp,
-                            state,
-                            service: None,
-                            version: None,
-                            extra_info: None,
-                            confidence: 0.0,
-                            patch_level: None,
-                            security_posture: None,
-                            impact_score: None,
-                            cve_ids: None,
-                        });
-                    }
-                    Err(e) => {
-                        warn!("UDP scan failed for {}:{} - {}", ip, port, e);
-                    }
+        for &port in &self.config.ports {
+            match scanner.scan_port(ip, port).await {
+                Ok(scan_result) => {
+                    results.push(apexscan_core::scan::PortResult {
+                        port,
+                        protocol: Protocol::Udp,
+                        state: scan_result.state,
+                        service: None,
+                        version: None,
+                        extra_info: None,
+                        confidence: 0.0,
+                        patch_level: None,
+                        security_posture: None,
+                        impact_score: None,
+                        cve_ids: None,
+                    });
+                }
+                Err(e) => {
+                    warn!("UDP scan failed for {}:{} - {}", ip, port, e);
                 }
             }
-
-            Ok(results)
-        } else {
-            Err(apexscan_core::Error::InvalidInput("IPv6 not yet supported for UDP scan".to_string()))
         }
+
+        Ok(results)
     }
 
     /// TCP NULL scan implementation
     async fn scan_tcp_null(&self, ip: IpAddr, config: &ScannerConfig) -> Result<Vec<apexscan_core::scan::PortResult>> {
-        if let IpAddr::V4(ipv4) = ip {
-            let scanner = TcpNullScanner::new(config.clone())?;
-            let mut results = Vec::new();
+        let scanner = TcpNullScanner::new(config.clone())?;
+        let mut results = Vec::new();
 
-            for &port in &self.config.ports {
-                match scanner.scan_port(ipv4, port).await {
-                    Ok((state, rtt)) => {
+        for &port in &self.config.ports {
+                match scanner.scan_port(ip, port).await {
+                    Ok(scan_result) => {
                         results.push(apexscan_core::scan::PortResult {
                             port,
                             protocol: Protocol::Tcp,
-                            state,
+                            state: scan_result.state,
                             service: None,
                             version: None,
                             extra_info: None,
@@ -345,24 +334,20 @@ impl Pipeline {
             }
 
             Ok(results)
-        } else {
-            Err(apexscan_core::Error::InvalidInput("IPv6 not yet supported for NULL scan".to_string()))
-        }
     }
 
     /// TCP FIN scan implementation
     async fn scan_tcp_fin(&self, ip: IpAddr, config: &ScannerConfig) -> Result<Vec<apexscan_core::scan::PortResult>> {
-        if let IpAddr::V4(ipv4) = ip {
-            let scanner = TcpFinScanner::new(config.clone())?;
-            let mut results = Vec::new();
+        let scanner = TcpFinScanner::new(config.clone())?;
+        let mut results = Vec::new();
 
-            for &port in &self.config.ports {
-                match scanner.scan_port(ipv4, port).await {
-                    Ok((state, rtt)) => {
+        for &port in &self.config.ports {
+                match scanner.scan_port(ip, port).await {
+                    Ok(scan_result) => {
                         results.push(apexscan_core::scan::PortResult {
                             port,
                             protocol: Protocol::Tcp,
-                            state,
+                            state: scan_result.state,
                             service: None,
                             version: None,
                             extra_info: None,
@@ -380,24 +365,20 @@ impl Pipeline {
             }
 
             Ok(results)
-        } else {
-            Err(apexscan_core::Error::InvalidInput("IPv6 not yet supported for FIN scan".to_string()))
-        }
     }
 
     /// TCP Xmas scan implementation
     async fn scan_tcp_xmas(&self, ip: IpAddr, config: &ScannerConfig) -> Result<Vec<apexscan_core::scan::PortResult>> {
-        if let IpAddr::V4(ipv4) = ip {
-            let scanner = TcpXmasScanner::new(config.clone())?;
+        let scanner = TcpXmasScanner::new(config.clone())?;
             let mut results = Vec::new();
 
             for &port in &self.config.ports {
-                match scanner.scan_port(ipv4, port).await {
-                    Ok((state, rtt)) => {
+                match scanner.scan_port(ip, port).await {
+                    Ok(scan_result) => {
                         results.push(apexscan_core::scan::PortResult {
                             port,
                             protocol: Protocol::Tcp,
-                            state,
+                            state: scan_result.state,
                             service: None,
                             version: None,
                             extra_info: None,
@@ -415,24 +396,20 @@ impl Pipeline {
             }
 
             Ok(results)
-        } else {
-            Err(apexscan_core::Error::InvalidInput("IPv6 not yet supported for Xmas scan".to_string()))
-        }
     }
 
     /// TCP ACK scan implementation
     async fn scan_tcp_ack(&self, ip: IpAddr, config: &ScannerConfig) -> Result<Vec<apexscan_core::scan::PortResult>> {
-        if let IpAddr::V4(ipv4) = ip {
-            let scanner = TcpAckScanner::new(config.clone())?;
+        let scanner = TcpAckScanner::new(config.clone())?;
             let mut results = Vec::new();
 
             for &port in &self.config.ports {
-                match scanner.scan_port(ipv4, port).await {
-                    Ok((state, rtt)) => {
+                match scanner.scan_port(ip, port).await {
+                    Ok(scan_result) => {
                         results.push(apexscan_core::scan::PortResult {
                             port,
                             protocol: Protocol::Tcp,
-                            state,
+                            state: scan_result.state,
                             service: None,
                             version: None,
                             extra_info: None,
@@ -450,24 +427,20 @@ impl Pipeline {
             }
 
             Ok(results)
-        } else {
-            Err(apexscan_core::Error::InvalidInput("IPv6 not yet supported for ACK scan".to_string()))
-        }
     }
 
     /// TCP Window scan implementation
     async fn scan_tcp_window(&self, ip: IpAddr, config: &ScannerConfig) -> Result<Vec<apexscan_core::scan::PortResult>> {
-        if let IpAddr::V4(ipv4) = ip {
-            let scanner = TcpWindowScanner::new(config.clone())?;
+        let scanner = TcpWindowScanner::new(config.clone())?;
             let mut results = Vec::new();
 
             for &port in &self.config.ports {
-                match scanner.scan_port(ipv4, port).await {
-                    Ok((state, rtt)) => {
+                match scanner.scan_port(ip, port).await {
+                    Ok(scan_result) => {
                         results.push(apexscan_core::scan::PortResult {
                             port,
                             protocol: Protocol::Tcp,
-                            state,
+                            state: scan_result.state,
                             service: None,
                             version: None,
                             extra_info: None,
@@ -485,24 +458,20 @@ impl Pipeline {
             }
 
             Ok(results)
-        } else {
-            Err(apexscan_core::Error::InvalidInput("IPv6 not yet supported for Window scan".to_string()))
-        }
     }
 
     /// TCP Maimon scan implementation
     async fn scan_tcp_maimon(&self, ip: IpAddr, config: &ScannerConfig) -> Result<Vec<apexscan_core::scan::PortResult>> {
-        if let IpAddr::V4(ipv4) = ip {
-            let scanner = TcpMaimonScanner::new(config.clone())?;
+        let scanner = TcpMaimonScanner::new(config.clone())?;
             let mut results = Vec::new();
 
             for &port in &self.config.ports {
-                match scanner.scan_port(ipv4, port).await {
-                    Ok((state, rtt)) => {
+                match scanner.scan_port(ip, port).await {
+                    Ok(scan_result) => {
                         results.push(apexscan_core::scan::PortResult {
                             port,
                             protocol: Protocol::Tcp,
-                            state,
+                            state: scan_result.state,
                             service: None,
                             version: None,
                             extra_info: None,
@@ -520,9 +489,6 @@ impl Pipeline {
             }
 
             Ok(results)
-        } else {
-            Err(apexscan_core::Error::InvalidInput("IPv6 not yet supported for Maimon scan".to_string()))
-        }
     }
 
     /// Service/version detection with CAP and AVM integration
@@ -534,8 +500,7 @@ impl Pipeline {
             avm::CveDatabase,
         };
 
-        let banner_grabber = BannerGrabber::new(Duration::from_secs(3));
-        let detector = ServiceDetector::new(banner_grabber);
+        let detector = ServiceDetector::new(Duration::from_secs(3));
 
         // Load CVE database for AVM
         let cve_db = CveDatabase::load_mock();
@@ -545,11 +510,9 @@ impl Pipeline {
         for mut port_result in ports {
             // Only detect services on open ports
             if port_result.state == PortState::Open {
-                let socket_addr = std::net::SocketAddr::new(ip, port_result.port);
-
-                match detector.detect_service(ip, port_result.port).await {
+                match detector.detect_service(ip, port_result.port.value()).await {
                     Ok(service_info) => {
-                        port_result.service = Some(service_info.service_name.clone());
+                        port_result.service = service_info.service_name.clone();
                         port_result.version = service_info.version.clone();
                         port_result.extra_info = Some(service_info.banner.clone());
                         port_result.confidence = service_info.confidence;
@@ -614,16 +577,15 @@ impl Pipeline {
     }
 
     /// OS detection
-    async fn detect_os(&self, ip: IpAddr) -> Result<apexscan_core::scan::OsInfo> {
-        use apexscan_fingerprint::os::{OsDetector, OsInfo};
-
+    async fn detect_os(&self, ip: IpAddr) -> Result<apexscan_core::scan::OsResult> {
         // For now, return basic OS detection
         // Full implementation would use TCP/IP stack fingerprinting
-        Ok(apexscan_core::scan::OsInfo {
-            os_family: Some("Unknown".to_string()),
-            os_version: None,
-            os_accuracy: 0.0,
-            fingerprint: None,
+        Ok(apexscan_core::scan::OsResult {
+            name: "Unknown".to_string(),
+            family: Some("Unknown".to_string()),
+            version: None,
+            confidence: 0.0,
+            details: std::collections::HashMap::new(),
         })
     }
 
@@ -645,7 +607,7 @@ impl Pipeline {
 
                     let context = ScriptContext {
                         target_ip: ip.to_string(),
-                        target_port: Some(port_result.port),
+                        target_port: Some(port_result.port.value()),
                         service_name: port_result.service.clone(),
                         service_version: port_result.version.clone(),
                         os_name: None,
@@ -655,8 +617,9 @@ impl Pipeline {
                     match executor.execute_script(&script_path, &context) {
                         Ok(result) => {
                             script_results.push(apexscan_core::scan::ScriptResult {
-                                script_name: script_name.to_string(),
+                                script: script_name.to_string(),
                                 output: result.output,
+                                duration: Duration::from_secs(0), // TODO: actual duration
                                 success: result.success,
                             });
                         }
@@ -681,7 +644,7 @@ impl Pipeline {
         }
 
         // Otherwise, auto-select based on service/port
-        match port_result.port {
+        match port_result.port.value() {
             21 => scripts.push("ftp-anon".to_string()),
             22 => scripts.push("ssh-auth-methods".to_string()),
             80 | 443 | 8080 | 8000 | 8443 => scripts.push("http-title".to_string()),

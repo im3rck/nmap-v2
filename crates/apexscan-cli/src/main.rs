@@ -176,6 +176,13 @@ async fn main() {
         print_banner();
     }
 
+    // Extract targets before moving cli
+    let targets = match &cli.command {
+        Some(Commands::Scan { targets }) => targets.clone(),
+        None => cli.targets.clone(),
+        _ => Vec::new(),
+    };
+
     // Handle commands
     match cli.command {
         Some(Commands::Version) => {
@@ -200,21 +207,21 @@ async fn main() {
             list_scripts(category);
             return;
         }
-        Some(Commands::Scan { targets }) => {
+        Some(Commands::Scan { .. }) => {
             // Explicit scan command
             run_scan(cli, targets).await;
             return;
         }
         None => {
             // Default: scan mode
-            if cli.targets.is_empty() {
+            if targets.is_empty() {
                 eprintln!("{} No targets specified", "Error:".bright_red());
                 eprintln!("Usage: apexscan <TARGET> [OPTIONS]");
                 eprintln!("Try 'apexscan --help' for more information");
                 process::exit(1);
             }
 
-            run_scan(cli, cli.targets.clone()).await;
+            run_scan(cli, targets).await;
         }
     }
 }
