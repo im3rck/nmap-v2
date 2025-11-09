@@ -5,11 +5,8 @@ use clap::{Parser, Subcommand};
 use colored::*;
 use std::process;
 
-mod output;
-mod pipeline;
-
-use output::{OutputFormat, OutputManager};
-use pipeline::{Pipeline, PipelineConfig};
+use apexscan_cli::output::{OutputFormat, OutputManager};
+use apexscan_cli::pipeline::{Pipeline, PipelineConfig};
 
 #[derive(Parser)]
 #[command(name = "apexscan")]
