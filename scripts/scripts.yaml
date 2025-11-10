@@ -17,7 +17,41 @@ scripts:
       - 8080
       - 8000
       - 8443
-    
+
+  - name: http-methods
+    file: http-methods.py
+    description: "Enumerates HTTP methods using OPTIONS request"
+    author: "ApexScan Team"
+    categories:
+      - discovery
+      - safe
+    requires_port: true
+    requires_service: http
+    ports:
+      - 80
+      - 443
+      - 8080
+      - 8000
+      - 8443
+
+  - name: http-headers
+    file: http-headers.py
+    description: "Analyzes HTTP security headers and identifies missing protections"
+    author: "ApexScan Team"
+    categories:
+      - discovery
+      - safe
+      - vuln
+    requires_port: true
+    requires_service: http
+    ports:
+      - 80
+      - 443
+      - 8080
+      - 8000
+      - 8443
+    severity: MEDIUM
+
   - name: ssh-auth-methods
     file: ssh-auth-methods.py
     description: "Determines which authentication methods are supported by SSH"
@@ -29,7 +63,7 @@ scripts:
     requires_service: ssh
     ports:
       - 22
-    
+
   - name: ftp-anon
     file: ftp-anon.py
     description: "Checks if FTP server allows anonymous login"
@@ -43,3 +77,49 @@ scripts:
     ports:
       - 21
     severity: HIGH
+
+  - name: ftp-bounce
+    file: ftp-bounce.py
+    description: "Tests for FTP bounce attack vulnerability (PORT command abuse)"
+    author: "ApexScan Team"
+    categories:
+      - intrusive
+      - exploit-check
+      - vuln
+    requires_port: true
+    requires_service: ftp
+    ports:
+      - 21
+    severity: CRITICAL
+    cveid: "CVE-1999-0017"
+
+  - name: smb-enum-shares
+    file: smb-enum-shares.py
+    description: "Enumerates SMB shares and checks for anonymous access"
+    author: "ApexScan Team"
+    categories:
+      - discovery
+      - intrusive
+      - vuln
+    requires_port: true
+    requires_service: smb
+    ports:
+      - 445
+      - 139
+    severity: HIGH
+
+  - name: smb-security-mode
+    file: smb-security-mode.py
+    description: "Checks SMB security dialect and authentication requirements"
+    author: "ApexScan Team"
+    categories:
+      - discovery
+      - safe
+      - vuln
+    requires_port: true
+    requires_service: smb
+    ports:
+      - 445
+      - 139
+    severity: MEDIUM
+
