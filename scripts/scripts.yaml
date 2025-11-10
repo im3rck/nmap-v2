@@ -123,3 +123,32 @@ scripts:
       - 139
     severity: MEDIUM
 
+  - name: mysql-info
+    file: mysql-info.py
+    description: "Enumerates MySQL/MariaDB server information and configuration"
+    author: "ApexScan Team"
+    categories:
+      - discovery
+      - safe
+      - database
+    requires_port: true
+    requires_service: mysql
+    ports:
+      - 3306
+    severity: LOW
+
+  - name: mysql-empty-password
+    file: mysql-empty-password.py
+    description: "Checks for MySQL/MariaDB accounts with empty passwords"
+    author: "ApexScan Team"
+    categories:
+      - auth
+      - intrusive
+      - vuln
+      - database
+    requires_port: true
+    requires_service: mysql
+    ports:
+      - 3306
+    severity: CRITICAL
+
