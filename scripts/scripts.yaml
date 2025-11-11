@@ -152,3 +152,103 @@ scripts:
       - 3306
     severity: CRITICAL
 
+  - name: ssh-hostkey
+    file: ssh-hostkey.py
+    description: "Enumerates SSH host keys and algorithms, detects weak configurations"
+    author: "ApexScan Team"
+    categories:
+      - discovery
+      - safe
+      - vuln
+    requires_port: true
+    requires_service: ssh
+    ports:
+      - 22
+    severity: MEDIUM
+
+  - name: rdp-enum-encryption
+    file: rdp-enum-encryption.py
+    description: "Enumerates RDP encryption levels and supported security protocols"
+    author: "ApexScan Team"
+    categories:
+      - discovery
+      - safe
+      - vuln
+    requires_port: true
+    requires_service: rdp
+    ports:
+      - 3389
+    severity: MEDIUM
+
+  - name: rdp-ntlm-info
+    file: rdp-ntlm-info.py
+    description: "Extracts Windows domain and system information from RDP NTLM"
+    author: "ApexScan Team"
+    categories:
+      - discovery
+      - safe
+    requires_port: true
+    requires_service: rdp
+    ports:
+      - 3389
+    severity: LOW
+
+  - name: dns-nsid
+    file: dns-nsid.py
+    description: "Retrieves DNS server identification using NSID EDNS0 option"
+    author: "ApexScan Team"
+    categories:
+      - discovery
+      - safe
+    requires_port: true
+    requires_service: dns
+    ports:
+      - 53
+    severity: LOW
+
+  - name: dns-zone-transfer
+    file: dns-zone-transfer.py
+    description: "Tests for DNS zone transfer (AXFR) vulnerability"
+    author: "ApexScan Team"
+    categories:
+      - intrusive
+      - exploit-check
+      - vuln
+    requires_port: true
+    requires_service: dns
+    ports:
+      - 53
+    severity: CRITICAL
+
+  - name: smtp-commands
+    file: smtp-commands.py
+    description: "Enumerates SMTP commands and detects dangerous configurations"
+    author: "ApexScan Team"
+    categories:
+      - discovery
+      - safe
+      - vuln
+    requires_port: true
+    requires_service: smtp
+    ports:
+      - 25
+      - 587
+      - 465
+    severity: MEDIUM
+
+  - name: smtp-open-relay
+    file: smtp-open-relay.py
+    description: "Tests for SMTP open relay vulnerability"
+    author: "ApexScan Team"
+    categories:
+      - intrusive
+      - exploit-check
+      - vuln
+    requires_port: true
+    requires_service: smtp
+    ports:
+      - 25
+      - 587
+      - 465
+    severity: CRITICAL
+

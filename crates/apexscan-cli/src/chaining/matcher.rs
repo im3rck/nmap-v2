@@ -152,7 +152,7 @@ mod tests {
     #[test]
     fn test_service_equals_condition() {
         let mut port_result = PortResult {
-            port: Port::new(80),
+            port: Port::new(80).unwrap(),
             protocol: Protocol::Tcp,
             state: PortState::Open,
             service: Some("http".to_string()),
@@ -178,7 +178,7 @@ mod tests {
     #[test]
     fn test_impact_score_gte_condition() {
         let port_result = PortResult {
-            port: Port::new(22),
+            port: Port::new(22).unwrap(),
             protocol: Protocol::Tcp,
             state: PortState::Open,
             service: Some("ssh".to_string()),

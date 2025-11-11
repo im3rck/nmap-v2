@@ -1,6 +1,8 @@
 //! Execution pipeline coordinator
 
 use apexscan_core::{
+    avm_data,
+    dns_resolver,
     net::parse_cidr,
     scan::{HostResult, ScanConfig, ScanResults, ScanType},
     types::{HostState, Port, PortState, Protocol, Target, TimingTemplate},
@@ -76,10 +78,10 @@ impl Pipeline {
     /// Execute the full scanning pipeline
     pub async fn execute(&self, targets: Vec<String>) -> Result<ScanResults> {
         let start_time = Instant::now();
-        
+
         // Step 1: Parse and expand targets
         info!("Parsing targets...");
-        let ips = self.parse_targets(targets)?;
+        let ips = self.parse_targets(targets).await?;
         println!("{} Scanning {} target(s)...", "→".bright_cyan(), ips.len());
         
         // Step 2: Host discovery
@@ -123,24 +125,40 @@ impl Pipeline {
     }
 
     /// Parse target specifications into IP addresses
-    fn parse_targets(&self, targets: Vec<String>) -> Result<Vec<IpAddr>> {
+    async fn parse_targets(&self, targets: Vec<String>) -> Result<Vec<IpAddr>> {
         let mut ips = Vec::new();
-        
+
         for target in targets {
             if target.contains('/') {
                 // CIDR notation
                 let cidr_ips = parse_cidr(&target)?;
                 ips.extend(cidr_ips);
             } else {
-                // Single IP or hostname
-                let ip: IpAddr = target.parse()
-                    .map_err(|_| apexscan_core::Error::InvalidInput(
-                        format!("Invalid IP address: {}", target)
-                    ))?;
-                ips.push(ip);
+                // Try parsing as IP address first
+                if let Ok(ip) = target.parse::<IpAddr>() {
+                    ips.push(ip);
+                } else {
+                    // Not a valid IP, try DNS resolution
+                    println!("{} Resolving hostname: {}", "→".bright_cyan(), target);
+                    match dns_resolver::resolve_hostname(&target).await {
+                        Ok(resolved_ips) => {
+                            for ip_str in resolved_ips {
+                                if let Ok(ip) = ip_str.parse::<IpAddr>() {
+                                    println!("  {} {} => {}", "✓".bright_green(), target, ip);
+                                    ips.push(ip);
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            return Err(apexscan_core::Error::InvalidInput(
+                                format!("DNS resolution failed for '{}': {}", target, e)
+                            ));
+                        }
+                    }
+                }
             }
         }
-        
+
         Ok(ips)
     }
 
@@ -528,13 +546,12 @@ impl Pipeline {
             banner::BannerGrabber,
             service::ServiceDetector,
             cap::HttpProfile,
-            avm::CveDatabase,
         };
 
         let detector = ServiceDetector::new(Duration::from_secs(3));
 
-        // Load CVE database for AVM
-        let cve_db = CveDatabase::load_mock();
+        // Load AVM vulnerability data
+        let avm_data = avm_data::load_avm_data();
 
         let mut enhanced_ports = Vec::new();
 
@@ -577,21 +594,29 @@ impl Pipeline {
 
                         // AVM: Automated Vulnerability Mapping
                         if let Some(ref svc) = service_info.service_name {
-                            let impact = cve_db.query(svc, service_info.version.as_deref());
+                            if let Some(ref version) = service_info.version {
+                                let matches = avm_data::lookup_all_avm(&avm_data, svc, version);
 
-                            if !impact.cves.is_empty() {
-                                port_result.impact_score = Some(impact.score);
-                                port_result.cve_ids = Some(
-                                    impact.cves.iter()
-                                        .map(|cve| cve.cve_id.clone())
-                                        .collect()
-                                );
+                                if !matches.is_empty() {
+                                    // Find the highest impact score
+                                    let max_impact = matches.iter()
+                                        .map(|entry| entry.impact_score)
+                                        .fold(0.0, f64::max);
 
-                                debug!("AVM analysis for {}:{} - Impact: {:.1}, CVEs: {}",
-                                    ip, port_result.port,
-                                    impact.score,
-                                    impact.cves.len()
-                                );
+                                    // Collect all unique CVE IDs
+                                    let all_cves: Vec<String> = matches.iter()
+                                        .flat_map(|entry| entry.cve_ids.clone())
+                                        .collect();
+
+                                    port_result.impact_score = Some(max_impact);
+                                    port_result.cve_ids = Some(all_cves.clone());
+
+                                    debug!("AVM analysis for {}:{} - Impact: {:.1}, CVEs: {}",
+                                        ip, port_result.port,
+                                        max_impact,
+                                        all_cves.len()
+                                    );
+                                }
                             }
                         }
                     }
