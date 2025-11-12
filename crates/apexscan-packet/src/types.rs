@@ -1,7 +1,6 @@
 //! Packet type definitions
 
-use apexscan_core::types::{Port, Protocol};
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+use std::net::Ipv4Addr;
 
 /// TCP flags
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

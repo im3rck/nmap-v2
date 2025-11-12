@@ -4,10 +4,10 @@ pub mod json;
 pub mod xml;
 pub mod csv;
 pub mod console;
+pub mod grepable;
 
 use apexscan_core::scan::{HostResult, ScanResults};
 use apexscan_core::Result;
-use std::path::Path;
 
 /// Output format
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -16,6 +16,7 @@ pub enum OutputFormat {
     Xml,
     Csv,
     Console,
+    Grepable,
 }
 
 impl OutputFormat {
@@ -25,6 +26,7 @@ impl OutputFormat {
             "xml" => Some(OutputFormat::Xml),
             "csv" => Some(OutputFormat::Csv),
             "txt" | "console" => Some(OutputFormat::Console),
+            "grepable" | "grep" => Some(OutputFormat::Grepable),
             _ => None,
         }
     }
@@ -51,6 +53,7 @@ impl OutputManager {
             OutputFormat::Xml => xml::format_xml(results)?,
             OutputFormat::Csv => csv::format_csv(results)?,
             OutputFormat::Console => console::format_console(results)?,
+            OutputFormat::Grepable => grepable::format_grepable(results),
         };
 
         if let Some(ref file_path) = self.output_file {

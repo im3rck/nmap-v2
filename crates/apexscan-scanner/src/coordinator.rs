@@ -2,7 +2,6 @@
 
 use crate::{PortScanResult, PortScanner, ScannerConfig};
 use apexscan_core::{
-    scan::ScanType,
     types::Port,
     Result,
 };

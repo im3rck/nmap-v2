@@ -5,7 +5,7 @@ use apexscan_core::{Error, Result};
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyModule};
 use std::collections::HashMap;
-use tracing::{debug, trace, warn};
+use tracing::debug;
 
 /// Python script executor
 pub struct PythonExecutor {
@@ -150,11 +150,8 @@ impl PythonExecutor {
     }
 }
 
-impl Default for PythonExecutor {
-    fn default() -> Self {
-        Self::new().expect("Failed to initialize Python")
-    }
-}
+// Note: Default trait intentionally not implemented to avoid panic on initialization failure.
+// Always use PythonExecutor::new() explicitly and handle the Result.
 
 #[cfg(test)]
 mod tests {

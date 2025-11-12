@@ -1,6 +1,5 @@
 //! Connection state tracking for high-concurrency scanning
 
-use apexscan_core::types::{Port, PortState};
 use dashmap::DashMap;
 use std::net::IpAddr;
 use std::time::{Duration, Instant};

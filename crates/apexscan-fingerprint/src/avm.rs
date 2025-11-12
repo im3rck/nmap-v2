@@ -2,7 +2,6 @@
 //!
 //! Deterministic vulnerability matching and impact scoring based on detected versions
 
-use apexscan_core::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 

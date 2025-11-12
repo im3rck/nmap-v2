@@ -9,7 +9,6 @@ pub mod signatures;
 pub mod cap; // Contextual Asset Profiling
 pub mod avm; // Automated Vulnerability Mapping
 
-use apexscan_core::Result;
 use std::net::IpAddr;
 
 /// Service detection result

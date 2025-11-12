@@ -18,9 +18,9 @@ use async_trait::async_trait;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 use tokio::time::timeout;
-use tracing::{debug, trace};
+use tracing::debug;
 
 /// TCP ACK Scanner (-sA)
 /// Used for firewall rule mapping

@@ -1,7 +1,7 @@
 //! TCP-based host discovery
 
 use crate::{DiscoveryMethod, DiscoveryResult, HostDiscovery};
-use apexscan_core::{types::Target, Error, Result};
+use apexscan_core::{types::Target, Result};
 use async_trait::async_trait;
 use std::net::IpAddr;
 use std::time::Duration;

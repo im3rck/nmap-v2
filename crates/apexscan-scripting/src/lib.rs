@@ -7,7 +7,6 @@ pub mod nse;
 pub mod engine;
 pub mod script;
 
-use apexscan_core::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 

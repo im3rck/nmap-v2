@@ -5,7 +5,6 @@
 //! - Security posture
 //! - Deployment context
 
-use apexscan_core::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 

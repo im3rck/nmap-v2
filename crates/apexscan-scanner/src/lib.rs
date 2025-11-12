@@ -10,7 +10,7 @@ pub mod specialized_scanner;
 pub mod state;
 pub mod coordinator;
 
-use apexscan_core::{scan::ScanType, types::{Port, PortState, Protocol, Target}, Error, Result};
+use apexscan_core::{scan::ScanType, types::{Port, PortState, Protocol, Target}, Result};
 use async_trait::async_trait;
 use std::net::IpAddr;
 use std::time::Duration;

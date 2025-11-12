@@ -8,7 +8,7 @@ pub mod tcp;
 pub mod udp;
 pub mod coordinator;
 
-use apexscan_core::{types::Target, Error, Result};
+use apexscan_core::{types::Target, Result};
 use async_trait::async_trait;
 use std::net::IpAddr;
 use std::time::Duration;

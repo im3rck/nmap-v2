@@ -1,7 +1,6 @@
 //! Packet parsers for analyzing received packets
 
 use crate::types::*;
-use crate::PacketParser;
 use apexscan_core::{Error, Result};
 use std::net::Ipv4Addr;
 

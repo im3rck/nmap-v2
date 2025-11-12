@@ -2,7 +2,7 @@
 
 use crate::types::*;
 use crate::{calculate_checksum, calculate_transport_checksum, PacketBuilder};
-use apexscan_core::{Error, Result};
+use apexscan_core::Result;
 use std::net::Ipv4Addr;
 
 /// TCP packet builder

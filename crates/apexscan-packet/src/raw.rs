@@ -1,8 +1,7 @@
 //! Raw socket interface
 
 use apexscan_core::{Error, Result};
-use socket2::{Domain, Protocol, Socket, Type};
-use std::io::{Read, Write};
+use socket2::Socket;
 use std::net::SocketAddr;
 
 /// Raw socket wrapper for packet transmission
@@ -104,7 +103,7 @@ impl RawSocket {
 /// Check if the process has CAP_NET_RAW capability (Linux only)
 #[cfg(target_os = "linux")]
 pub fn check_raw_socket_permission() -> Result<()> {
-    use std::os::unix::io::FromRawFd;
+    
     use std::process::Command;
 
     let output = Command::new("getcap")

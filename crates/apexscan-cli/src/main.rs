@@ -19,6 +19,10 @@ struct Cli {
     #[arg(value_name = "TARGET")]
     targets: Vec<String>,
 
+    /// Read targets from file (one per line)
+    #[arg(short = 'i', long = "input-file", value_name = "FILE")]
+    input_file: Option<String>,
+
     /// Scan type
     #[command(subcommand)]
     command: Option<Commands>,
@@ -143,6 +147,38 @@ fn parse_timing(s: &str) -> std::result::Result<TimingTemplate, String> {
     }
 }
 
+/// Load targets from a file (one per line)
+fn load_targets_from_file(file_path: &str) -> Result<Vec<String>, String> {
+    use std::fs::File;
+    use std::io::{BufRead, BufReader};
+
+    let file = File::open(file_path)
+        .map_err(|e| format!("Cannot open file '{}': {}", file_path, e))?;
+
+    let reader = BufReader::new(file);
+    let mut targets = Vec::new();
+
+    for (line_num, line) in reader.lines().enumerate() {
+        let line = line.map_err(|e| format!("Error reading line {}: {}", line_num + 1, e))?;
+
+        // Trim whitespace
+        let trimmed = line.trim();
+
+        // Skip empty lines and comments
+        if trimmed.is_empty() || trimmed.starts_with('#') {
+            continue;
+        }
+
+        targets.push(trimmed.to_string());
+    }
+
+    if targets.is_empty() {
+        return Err("No valid targets found in file".to_string());
+    }
+
+    Ok(targets)
+}
+
 fn print_banner() {
     println!("{}", r#"
     ___                     _____
@@ -173,12 +209,26 @@ async fn main() {
         print_banner();
     }
 
-    // Extract targets before moving cli
-    let targets = match &cli.command {
+    // Extract targets from CLI or file
+    let mut targets = match &cli.command {
         Some(Commands::Scan { targets }) => targets.clone(),
         None => cli.targets.clone(),
         _ => Vec::new(),
     };
+
+    // Load additional targets from file if specified
+    if let Some(ref input_file) = cli.input_file {
+        match load_targets_from_file(input_file) {
+            Ok(file_targets) => {
+                println!("{} Loaded {} target(s) from {}", "→".bright_cyan(), file_targets.len(), input_file);
+                targets.extend(file_targets);
+            }
+            Err(e) => {
+                eprintln!("{} Failed to load targets from file: {}", "Error:".bright_red(), e);
+                process::exit(1);
+            }
+        }
+    }
 
     // Handle commands
     match cli.command {

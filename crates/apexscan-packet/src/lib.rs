@@ -12,7 +12,7 @@ pub use builders::*;
 pub use parsers::*;
 pub use types::*;
 
-use apexscan_core::{Error, Result};
+use apexscan_core::Result;
 
 /// Protocol constants for raw sockets
 pub mod protocols {
